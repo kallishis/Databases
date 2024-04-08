@@ -145,3 +145,15 @@ CREATE TABLE episode_entries(
     FOREIGN KEY (chef_id) REFERENCES chef(chef_id),
     FOREIGN KEY (nt_name) REFERENCES national_cuisine(nt_name)
 );
+CREATE TABLE judges(
+	episode_id INT NOT NULL,
+    first_judge_id INT NOT NULL,
+    second_judge_id INT NOT NULL,
+    third_judge_id INT NOT NULL,
+    PRIMARY KEY (episode_id,first_judge_id,second_judge_id,third_judge_id),
+    FOREIGN KEY(episode_id) REFERENCES episode(episode_id),
+	FOREIGN KEY (first_judge_id) REFERENCES chef(chef_id),
+    FOREIGN KEY (second_judge_id) REFERENCES chef(chef_id),
+    FOREIGN KEY (third_judge_id) REFERENCES chef(chef_id)
+);
+    
