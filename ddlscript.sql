@@ -26,7 +26,8 @@ CREATE TABLE ingredient(
     protein_per_100g NUMERIC(5,2) CHECK(protein_per_100g >= 0 AND protein_per_100g <= 100),
     carbs_per_100g NUMERIC(5,2) CHECK(carbs_per_100g >= 0 AND carbs_per_100g <= 100),-- Triger if fat+protein+carbs > 100
     ing_group VARCHAR(50) NOT NULL,
-    FOREIGN KEY (ing_group) REFERENCES ingredient_group(ing_g_name)
+    FOREIGN KEY (ing_group) REFERENCES ingredient_group(ing_g_name),
+    CONSTRAINT sum_of_macros CHECK (fat_per_100g+protein_per_100g+carbs_per_100g <= 100)
 );
 CREATE TABLE thematic_section(
 	ts_name VARCHAR(100) PRIMARY KEY,
@@ -138,7 +139,7 @@ CREATE TABLE episode_entries(
     score1 INT NOT NULL CHECK(score1 >= 1 AND score1 <=5),
 	score2 INT NOT NULL CHECK(score2 >= 1 AND score2 <=5),
 	score3 INT NOT NULL CHECK(score3 >= 1 AND score3 <=5),
-    avg_score DECIMAL(3,2) GENERATED ALWAYS AS ((score1 + score2 + score3) / 3.0) STORED,
+    total_score INT GENERATED ALWAYS AS (score1 + score2 + score3) STORED,
     PRIMARY KEY (episode_id,nt_name),
 	FOREIGN KEY (recipe) REFERENCES recipe(recipe_name),
     FOREIGN KEY (episode_id) REFERENCES episode(episode_id),
