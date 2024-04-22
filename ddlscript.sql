@@ -37,8 +37,9 @@ CREATE TABLE thematic_section(
 CREATE TABLE step(
 	step_id INT AUTO_INCREMENT PRIMARY KEY,
     description VARCHAR(1000) NOT NULL,
-    next_id INT UNIQUE,
-    FOREIGN KEY (next_id) REFERENCES step(step_id) ON DELETE RESTRICT ON UPDATE RESTRICT
+    step_order INT NOT NULL,
+    recipe_id INT NOT NULL,
+    FOREIGN KEY (recipe_id) REFERENCES recipe(recipe_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE national_cuisine(
 	nt_name VARCHAR(30) PRIMARY KEY
