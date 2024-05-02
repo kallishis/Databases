@@ -13,6 +13,7 @@ CREATE TABLE tip (
     description VARCHAR(100) UNIQUE NOT NULL
 );
 CREATE TABLE equipment(
+	eq_id INT AUTO_INCREMENT PRIMARY KEY,
 	eq_name VARCHAR(30) PRIMARY KEY,
     instructions VARCHAR(1000) NOT NULL
 );
@@ -33,13 +34,6 @@ CREATE TABLE ingredient(
 CREATE TABLE thematic_section(
 	ts_name VARCHAR(100) PRIMARY KEY,
     description VARCHAR(1000) NOT NULL
-);
-CREATE TABLE step(
-	step_id INT AUTO_INCREMENT PRIMARY KEY,
-    description VARCHAR(1000) NOT NULL,
-    step_order INT NOT NULL,
-    recipe_id INT NOT NULL,
-    FOREIGN KEY (recipe_id) REFERENCES recipe(recipe_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE national_cuisine(
 	nt_name VARCHAR(30) PRIMARY KEY
@@ -89,7 +83,6 @@ CREATE TABLE recipe(
     exec_time INT NOT NULL CHECK(exec_time >= 0),
 	basic_ingredient VARCHAR(50) NOT NULL,
     characterization VARCHAR(100) NOT NULL,
-    first_step_id INT NOT NULL,
     national_cuisine VARCHAR(30) NOT NULL,
     portions INT NOT NULL CHECK(portions > 0 ) DEFAULT 0,
     calories_per_portion NUMERIC(8,2) NOT NULL CHECK (calories_per_portion >= 0) DEFAULT 0,
@@ -99,6 +92,13 @@ CREATE TABLE recipe(
     FOREIGN KEY (national_cuisine) REFERENCES national_cuisine(nt_name) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (first_step_id) REFERENCES step(step_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (basic_ingredient) REFERENCES ingredient(ing_name) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+CREATE TABLE step(
+	step_id INT AUTO_INCREMENT PRIMARY KEY,
+    description VARCHAR(1000) NOT NULL,
+    step_order INT NOT NULL,
+    recipe_id INT NOT NULL,
+    FOREIGN KEY (recipe_id) REFERENCES recipe(recipe_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE episode(
 	episode_id INT PRIMARY KEY,
