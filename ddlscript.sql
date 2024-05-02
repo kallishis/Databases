@@ -75,6 +75,11 @@ CREATE TABLE phonebook(
 	label VARCHAR(30),
 	FOREIGN KEY (chef_id) REFERENCES chef(chef_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
+CREATE TABLE unit_of_measure(
+	u_o_m_id INT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    conversion_rate NUMERIC(8,2) NOT NULL CHECK (conversion_rate >= 0)
+);
 CREATE TABLE recipe(
 	recipe_id INT AUTO_INCREMENT PRIMARY KEY,
 	recipe_name VARCHAR(100) NOT NULL,
@@ -82,15 +87,15 @@ CREATE TABLE recipe(
     difficulty INT NOT NULL CHECK(difficulty >= 1 AND difficulty <= 5),
     prep_time INT NOT NULL CHECK(prep_time >= 0),
     exec_time INT NOT NULL CHECK(exec_time >= 0),
-    portions INT NOT NULL CHECK(portions > 0 ),
-    calories_per_portion NUMERIC(8,2) NOT NULL CHECK (calories_per_portion >= 0),
-	fat_per_portion NUMERIC(8,2) NOT NULL CHECK (fat_per_portion >= 0),
-	protein_per_portion NUMERIC(8,2) NOT NULL CHECK (protein_per_portion >= 0),
-	carbs_per_portion NUMERIC(8,2) NOT NULL CHECK (carbs_per_portion >= 0),
-    basic_ingredient VARCHAR(50) NOT NULL,
+	basic_ingredient VARCHAR(50) NOT NULL,
     characterization VARCHAR(100) NOT NULL,
     first_step_id INT NOT NULL,
     national_cuisine VARCHAR(30) NOT NULL,
+    portions INT NOT NULL CHECK(portions > 0 ) DEFAULT 0,
+    calories_per_portion NUMERIC(8,2) NOT NULL CHECK (calories_per_portion >= 0) DEFAULT 0,
+	fat_per_portion NUMERIC(8,2) NOT NULL CHECK (fat_per_portion >= 0) DEFAULT 0,
+	protein_per_portion NUMERIC(8,2) NOT NULL CHECK (protein_per_portion >= 0) DEFAULT 0,
+	carbs_per_portion NUMERIC(8,2) NOT NULL CHECK (carbs_per_portion >= 0) DEFAULT 0,
     FOREIGN KEY (national_cuisine) REFERENCES national_cuisine(nt_name) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (first_step_id) REFERENCES step(step_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (basic_ingredient) REFERENCES ingredient(ing_name) ON DELETE RESTRICT ON UPDATE CASCADE
@@ -131,9 +136,10 @@ CREATE TABLE ingredients_used(
 	rc_id INT NOT NULL,
     ing_name VARCHAR(50) NOT NULL,
     quantity INT NOT NULL CHECK(quantity > 0),
-    unit VARCHAR(20) NOT NULL,
+    unit INT NOT NULL,
 	PRIMARY KEY (rc_id,ing_name),
     FOREIGN KEY (rc_id) REFERENCES recipe(recipe_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (unit) REFERENCES unit_of_measure(u_o_m_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (ing_name) REFERENCES ingredient(ing_name) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE recipe_thematic_section(
