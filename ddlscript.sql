@@ -155,6 +155,13 @@ CREATE TABLE chef_national_cuisines(
     FOREIGN KEY (chef_id) REFERENCES chef(chef_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (nt_name) REFERENCES national_cuisine(nt_name) ON DELETE RESTRICT ON UPDATE CASCADE
 );
+CREATE TABLE chef_recipe(
+	chef_id INT NOT NULL,
+    rc_id INT NOT NULL,
+	PRIMARY KEY (chef_id,rc_id),
+    FOREIGN KEY (chef_id) REFERENCES chef(chef_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (rc_id) REFERENCES recipe(recipe_id) ON DELETE RESTRICT ON UPDATE CASCADE
+);
 CREATE TABLE episode(
 	episode_id INT NOT NULL,
     season_id INT NOT NULL,
