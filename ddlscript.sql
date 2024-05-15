@@ -3,24 +3,24 @@ DROP DATABASE cooking_competition;
 CREATE DATABASE cooking_competition;
 USE cooking_competition;
 CREATE TABLE meal_type (
-	mt_name VARCHAR(15) PRIMARY KEY
+	mt_name VARCHAR(50) PRIMARY KEY
 );
 CREATE TABLE label (
 	label_name VARCHAR(30) PRIMARY KEY
 );
 CREATE TABLE tip (
 	tip_id INT AUTO_INCREMENT PRIMARY KEY,
-    description VARCHAR(100) UNIQUE NOT NULL
+    description VARCHAR(600) UNIQUE NOT NULL
 );
 CREATE TABLE equipment(
 	eq_id INT AUTO_INCREMENT PRIMARY KEY,
-	eq_name VARCHAR(30) PRIMARY KEY,
+	eq_name VARCHAR(100) ,
     instructions VARCHAR(1000) NOT NULL
 );
 CREATE TABLE ingredient_group(
 	ing_g_name VARCHAR(50) PRIMARY KEY,
     description VARCHAR(1000) NOT NULL,
-    characterization VARCHAR(30) NOT NULL
+    characterization VARCHAR(100) NOT NULL
 );
 CREATE TABLE ingredient(
 	ing_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -44,7 +44,7 @@ CREATE TABLE users(
 	username VARCHAR(20) PRIMARY KEY,
     password VARCHAR(20) NOT NULL,
     user_type VARCHAR(10) NOT NULL,
-    CONSTRAINT password_length CHECK (LENGTH(password) BETWEEN 8 AND 20),
+    CONSTRAINT password_length CHECK (LENGTH(password) BETWEEN 7 AND 21),
     CONSTRAINT user_type_accepted_values CHECK (user_type in ('admin','chef'))
 );
 CREATE TABLE chef(
@@ -85,7 +85,7 @@ CREATE TABLE recipe(
     prep_time INT NOT NULL CHECK(prep_time >= 0),
     exec_time INT NOT NULL CHECK(exec_time >= 0),
 	basic_ingredient INT NOT NULL,
-    characterization VARCHAR(100) NOT NULL,
+    characterization VARCHAR(100) ,
     national_cuisine VARCHAR(30) NOT NULL,
     portions INT NOT NULL CHECK(portions > 0 ) DEFAULT 0,
     calories_per_portion NUMERIC(8,2) NOT NULL CHECK (calories_per_portion >= 0) DEFAULT 0,
@@ -93,8 +93,7 @@ CREATE TABLE recipe(
 	protein_per_portion NUMERIC(8,2) NOT NULL CHECK (protein_per_portion >= 0) DEFAULT 0,
 	carbs_per_portion NUMERIC(8,2) NOT NULL CHECK (carbs_per_portion >= 0) DEFAULT 0,
     FOREIGN KEY (national_cuisine) REFERENCES national_cuisine(nt_name) ON DELETE RESTRICT ON UPDATE CASCADE,
-    FOREIGN KEY (first_step_id) REFERENCES step(step_id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    FOREIGN KEY (basic_ingredient) REFERENCES ingredient(ing_name) ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (basic_ingredient) REFERENCES ingredient(ing_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT recipe_type_values CHECK (recipe_type in ('savory','confectionery'))
 );
 CREATE TABLE step(
@@ -104,13 +103,9 @@ CREATE TABLE step(
     recipe_id INT NOT NULL,
     FOREIGN KEY (recipe_id) REFERENCES recipe(recipe_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
-CREATE TABLE episode(
-	episode_id INT PRIMARY KEY,
-    season INT NOT NULL CHECK (season >=1 AND season <= 5)
-);
 CREATE TABLE recipe_meal_type(
 	rc_id INT NOT NULL,
-    mt_name VARCHAR(15) NOT NULL,
+    mt_name VARCHAR(50) NOT NULL,
     PRIMARY KEY (rc_id,mt_name),
     FOREIGN KEY (rc_id) REFERENCES recipe(recipe_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (mt_name) REFERENCES meal_type(mt_name) ON DELETE RESTRICT ON UPDATE CASCADE
@@ -131,20 +126,20 @@ CREATE TABLE recipe_tips(
 );
 CREATE TABLE equipment_used(
 	rc_id INT NOT NULL,
-    eq_name VARCHAR(30) NOT NULL,
-    PRIMARY KEY (rc_id,eq_name),
+    eq_id INT NOT NULL,
+    PRIMARY KEY (rc_id,eq_id),
     FOREIGN KEY (rc_id) REFERENCES recipe(recipe_id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    FOREIGN KEY (eq_name) REFERENCES equipment(eq_name) ON DELETE RESTRICT ON UPDATE CASCADE
+    FOREIGN KEY (eq_id) REFERENCES equipment(eq_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE ingredients_used(
 	rc_id INT NOT NULL,
-    in_id INT NOT NULL,
-    amount INT NOT NULL CHECK(quantity > 0),
+    ing_id INT NOT NULL,
+    amount NUMERIC(10,4) NOT NULL CHECK(amount > 0),
     unit INT NOT NULL,
-	PRIMARY KEY (rc_id,ing_name),
+	PRIMARY KEY (rc_id,ing_id),
     FOREIGN KEY (rc_id) REFERENCES recipe(recipe_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (unit) REFERENCES unit_of_measure(u_o_m_id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    FOREIGN KEY (ing_name) REFERENCES ingredient(ing_name) ON DELETE RESTRICT ON UPDATE CASCADE
+    FOREIGN KEY (ing_id) REFERENCES ingredient(ing_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE recipe_thematic_section(
 	rc_id INT NOT NULL,
@@ -160,8 +155,15 @@ CREATE TABLE chef_national_cuisines(
     FOREIGN KEY (chef_id) REFERENCES chef(chef_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (nt_name) REFERENCES national_cuisine(nt_name) ON DELETE RESTRICT ON UPDATE CASCADE
 );
-CREATE TABLE episode_entries(
+CREATE TABLE episode(
 	episode_id INT NOT NULL,
+    season_id INT NOT NULL,
+    PRIMARY KEY (episode_id,season_id)
+);
+CREATE TABLE episode_entries(
+    entry_id INT AUTO_INCREMENT PRIMARY KEY,
+    episode_id INT NOT NULL,
+    season_id INT NOT NULL,
     nt_name VARCHAR(30) NOT NULL,
     chef_id INT NOT NULL,
     rc_id INT NOT NULL,
@@ -169,137 +171,120 @@ CREATE TABLE episode_entries(
 	score2 INT NOT NULL CHECK(score2 >= 1 AND score2 <=5),
 	score3 INT NOT NULL CHECK(score3 >= 1 AND score3 <=5),
     total_score INT GENERATED ALWAYS AS (score1 + score2 + score3) STORED,
-    PRIMARY KEY (episode_id,nt_name),
+    FOREIGN KEY (episode_id,season_id) REFERENCES episode(episode_id,season_id) ON DELETE RESTRICT ON UPDATE CASCADE,
 	FOREIGN KEY (rc_id) REFERENCES recipe(recipe_id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    FOREIGN KEY (episode_id) REFERENCES episode(episode_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (chef_id) REFERENCES chef(chef_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (nt_name) REFERENCES national_cuisine(nt_name) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE judges(
 	episode_id INT NOT NULL,
+    season_id INT NOT NULL,
     first_judge_id INT NOT NULL,
     second_judge_id INT NOT NULL,
     third_judge_id INT NOT NULL,
-    PRIMARY KEY (episode_id,first_judge_id,second_judge_id,third_judge_id),
-    FOREIGN KEY(episode_id) REFERENCES episode(episode_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    PRIMARY KEY (episode_id,season_id),
+    FOREIGN KEY (episode_id,season_id) REFERENCES episode(episode_id,season_id) ON DELETE RESTRICT ON UPDATE CASCADE,
 	FOREIGN KEY (first_judge_id) REFERENCES chef(chef_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (second_judge_id) REFERENCES chef(chef_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (third_judge_id) REFERENCES chef(chef_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 DELIMITER //
-CREATE PROCEDURE update_recipe_nutritional_info_after_insert(recipe_id INT)
+CREATE PROCEDURE update_recipe_nutritional_info_after_insert( IN rc_id INT, IN ing_id INT, IN amount NUMERIC(10,4), IN unit INT )
 BEGIN
-    DECLARE total_calories DECIMAL(10, 2);
-    DECLARE total_fat DECIMAL(10, 2);
-    DECLARE total_protein DECIMAL(10, 2);
-    DECLARE total_carbs DECIMAL(10, 2);
-
-    -- Initialize totals with existing recipe nutritional info
-    SELECT calories_per_portion, fat_per_portion, protein_per_portion, carbs_per_portion 
-    INTO total_calories, total_fat, total_protein, total_carbs 
-    FROM recipe 
-    WHERE recipe_id = NEW.recipe_id;
-
-    -- Update totals with new ingredient nutritional info
+    DECLARE calories NUMERIC(8,2);
+    DECLARE fat NUMERIC(8,2);
+    DECLARE carbs NUMERIC(8,2);
+    DECLARE protein NUMERIC(8,2);
+    
+    -- Calculate the nutritional values of the ingredient based on its amount and unit
     SELECT 
-        total_calories + (NEW.amount * i.calories_per_100g * uom.conversion_rate / r.portions),
-        total_fat + (NEW.amount * i.fat_per_100g * uom.conversion_rate / r.portions),
-        total_protein + (NEW.amount * i.protein_per_100g * uom.conversion_rate / r.portions),
-        total_carbs + (NEW.amount * i.carbs_per_100g * uom.conversion_rate / r.portions)
+        (amount * ing.calories_per_100g * uom.conversion_rate / 100),
+        (amount * ing.fat_per_100g * uom.conversion_rate / 100),
+        (amount * ing.carbs_per_100g * uom.conversion_rate / 100),
+        (amount * ing.protein_per_100g * uom.conversion_rate / 100)
     INTO 
-        total_calories, total_fat, total_protein, total_carbs
+        calories, fat, carbs, protein
     FROM 
-        ingredients i
+        ingredient ing
     JOIN 
-        units_of_measure uom ON NEW.unit = uom.u_o_m_id
-    JOIN 
-        recipe r ON NEW.recipe_id = r.recipe_id
+        unit_of_measure uom ON uom.u_o_m_id = unit
     WHERE 
-        i.ingredient_id = NEW.ingredient_id;
-
-    -- Update recipe table with new nutritional info
+        ing.ing_id = ing_id;
+    
+    -- Update the recipe table with the new nutritional values
     UPDATE recipe 
     SET 
-        calories_per_portion = total_calories,
-        fat_per_portion = total_fat,
-        protein_per_portion = total_protein,
-        carbs_per_portion = total_carbs
+        calories_per_portion = calories_per_portion + calories/portions,
+        fat_per_portion = fat_per_portion + fat/portions,
+        carbs_per_portion = carbs_per_portion + carbs/portions,
+        protein_per_portion = protein_per_portion + protein/portions
     WHERE 
-        recipe_id = NEW.recipe_id;
+        recipe_id = rc_id;
 END;
 //
-CREATE PROCEDURE update_recipe_nutritional_info_after_delete(recipe_id INT)
+CREATE PROCEDURE update_recipe_nutritional_info_after_delete( IN rc_id INT, IN ing_id INT, IN amount NUMERIC(10,4), IN unit INT)
 BEGIN
-    DECLARE total_calories DECIMAL(10, 2);
-    DECLARE total_fat DECIMAL(10, 2);
-    DECLARE total_protein DECIMAL(10, 2);
-    DECLARE total_carbs DECIMAL(10, 2);
-
-    -- Initialize totals with existing recipe nutritional info
-    SELECT calories_per_portion, fat_per_portion, protein_per_portion, carbs_per_portion 
-    INTO total_calories, total_fat, total_protein, total_carbs 
-    FROM recipe 
-    WHERE recipe_id = OLD.recipe_id;
-
-    -- Update totals by subtracting the row's nutritional info
+    DECLARE calories NUMERIC(8,2);
+    DECLARE fat NUMERIC(8,2);
+    DECLARE carbs NUMERIC(8,2);
+    DECLARE protein NUMERIC(8,2);
+    
+    -- Calculate the nutritional values of the ingredient based on its amount and unit
     SELECT 
-        total_calories - (OLD.amount * i.calories_per_100g * uom.conversion_rate / r.portions),
-        total_fat - (OLD.amount * i.fat_per_100g * uom.conversion_rate / r.portions),
-        total_protein - (OLD.amount * i.protein_per_100g * uom.conversion_rate / r.portions),
-        total_carbs - (OLD.amount * i.carbs_per_100g * uom.conversion_rate / r.portions)
+        (amount * ing.calories_per_100g * uom.conversion_rate / 100),
+        (amount * ing.fat_per_100g * uom.conversion_rate / 100),
+        (amount * ing.carbs_per_100g * uom.conversion_rate / 100),
+        (amount * ing.protein_per_100g * uom.conversion_rate / 100)
     INTO 
-        total_calories, total_fat, total_protein, total_carbs
+        calories, fat, carbs, protein
     FROM 
-        ingredients i
+        ingredient ing
     JOIN 
-        units_of_measure uom ON OLD.unit = uom.u_o_m_id
-    JOIN 
-        recipe r ON OLD.recipe_id = r.recipe_id
+        unit_of_measure uom ON uom.u_o_m_id = unit
     WHERE 
-        i.ingredient_id = OLD.ingredient_id;
-
-    -- Update recipe table with new nutritional info
+        ing.ing_id = ing_id;
+    
+    -- Update the recipe table by subtracting the nutritional values of the deleted ingredient
     UPDATE recipe 
     SET 
-        calories_per_portion = total_calories,
-        fat_per_portion = total_fat,
-        protein_per_portion = total_protein,
-        carbs_per_portion = total_carbs
+        calories_per_portion = calories_per_portion - calories/portions,
+        fat_per_portion = fat_per_portion - fat/portions,
+        carbs_per_portion = carbs_per_portion - carbs/portions,
+        protein_per_portion = protein_per_portion - protein/portions
     WHERE 
-        recipe_id = OLD.recipe_id;
+        recipe_id = rc_id;
 END;
 //
 CREATE TRIGGER update_nutritional_info_after_insert_t AFTER INSERT ON ingredients_used
 FOR EACH ROW
 BEGIN
-    CALL update_recipe_nutritional_info_after_insert(NEW.recipe_id);
+    CALL update_recipe_nutritional_info_after_insert(NEW.rc_id, NEW.ing_id, NEW.amount, NEW.unit);
 END;
 //
 CREATE TRIGGER update_nutritional_info_after_delete_t AFTER DELETE ON ingredients_used
 FOR EACH ROW
 BEGIN
-	CALL update_recipe_nutritional_info_after_delete(OLD.recipe_id);
+	CALL update_recipe_nutritional_info_after_delete(OLD.rc_id, OLD.ing_id, OLD.amount, OLD.unit);
 END;
 //
 CREATE TRIGGER update_nutritional_info_after_update_t AFTER UPDATE ON ingredients_used
 FOR EACH ROW
 BEGIN
-	CALL update_recipe_nutritional_info_after_delete(OLD.recipe_id);
-    CALL update_recipe_nutritional_info_after_insert(NEW.recipe_id);
+	CALL update_recipe_nutritional_info_after_delete(OLD.rc_id, OLD.ing_id, OLD.amount, OLD.unit);
+    CALL update_recipe_nutritional_info_after_insert(NEW.rc_id, NEW.ing_id, NEW.amount, NEW.unit);
 END;
 //
-CREATE TRIGGER AutoCharacterization AFTER INSERT ON RecipeIngredients
+CREATE TRIGGER autocharacterization BEFORE INSERT ON recipe
 FOR EACH ROW
 BEGIN
-    DECLARE rec_character VARCHAR(255);
+    DECLARE rec_character VARCHAR(100);
     SELECT characterization INTO rec_character
-    FROM ingredients
-    INNER JOIN ing_groups ON ingredients.ing_group = ing_groups.ing_g_name
-    WHERE ing_id = NEW.ing_id;
+    FROM ingredient
+    INNER JOIN ingredient_group ON ingredient.ing_group = ingredient_group.ing_g_name
+    WHERE ing_id = NEW.basic_ingredient;
     
-    UPDATE recipe
-    SET characterization = rec_character
-    WHERE recipe_id = NEW.recipe_id;
+    SET NEW.characterization = rec_character;
 END;
+//
 DELIMITER ;
