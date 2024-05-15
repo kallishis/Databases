@@ -60,7 +60,7 @@ connection.connect((err) => {
 
                         // Select a random recipe for the cuisine
                         recipe = await new Promise((resolve, reject) => {
-                            connection.query('SELECT * FROM recipe WHERE national_cuisine = ? ORDER BY RAND() LIMIT 1', [cuisine.nt_name], (err, result) => {
+                            connection.query('SELECT * FROM recipe INNER JOIN chef_recipe on recipe.recipe_id = chef_recipe.rc_id WHERE (recipe.national_cuisine = ?  AND chef_recipe.chef_id = ?) ORDER BY RAND() LIMIT 1', [cuisine.nt_name,chef_id], (err, result) => {
                                 if (err) reject(err);
                                 resolve(result);
                             });
