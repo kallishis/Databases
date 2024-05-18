@@ -294,4 +294,57 @@ BEGIN
     SET NEW.characterization = rec_character;
 END;
 //
+CREATE TRIGGER consecutive_episodes_check BEFORE INSERT ON episode_entries
+FOR EACH ROW
+BEGIN
+
+    -- Check if the chef has participated in the last three episodes
+    IF EXISTS (
+           SELECT 1
+           FROM episode_entries
+           WHERE chef_id = NEW.chef_id AND season_id = NEW.season_id AND episode_id IN (new.episode_id, new.episode_id - 1, new.episode_id - 2)
+           GROUP BY chef_id, season_id
+           HAVING COUNT(*) >= 3
+       ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Chef cannot compete in more than 3 consecutive episodes in the same season.';
+    END IF;
+    
+    -- Check if the recipe has participated in the last three episodes
+    IF EXISTS (
+           SELECT 1
+           FROM episode_entries
+           WHERE rc_id = NEW.rc_id AND season_id = NEW.season_id AND episode_id IN (new.episode_id, new.episode_id - 1, new.episode_id - 2)
+           GROUP BY rc_id, season_id
+           HAVING COUNT(*) >= 3
+       ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Recipe cannot compete in more than 3 consecutive episodes in the same season.';
+    END IF;
+    
+    -- Check if the national cuisine has participated in the last three episodes
+    IF EXISTS (
+           SELECT 1
+           FROM episode_entries
+           WHERE nt_name = NEW.nt_name AND season_id = NEW.season_id AND episode_id IN (new.episode_id, new.episode_id - 1, new.episode_id - 2)
+           GROUP BY nt_name, season_id
+           HAVING COUNT(*) >= 3
+       ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A national cuisine cannot compete in more than 3 consecutive episodes in the same season.';
+    END IF;
+END//
+
+CREATE TRIGGER check_tip_recipe_limit
+BEFORE INSERT ON recipe_tips
+FOR EACH ROW
+BEGIN
+    DECLARE tip_count INT;
+
+    -- Count the current number of tips for the recipe
+    SELECT COUNT(*)
+    INTO tip_count
+    FROM recipe_tips
+    WHERE rc_id = NEW.rc_id;
+
+    -- Check if the number of tips exceeds the limit
+    IF tip_count >= 3 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A recipe cannot have more than 3 tips.';
+    END IF;
+END//
+
 DELIMITER ;
