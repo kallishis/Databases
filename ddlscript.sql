@@ -2,8 +2,16 @@ DROP DATABASE cooking_competition;
 
 CREATE DATABASE cooking_competition;
 USE cooking_competition;
+
+CREATE TABLE images (
+	id INT AUTO_INCREMENT PRIMARY KEY,
+    img_path VARCHAR(100) NOT NULL,
+    img_description VARCHAR(100) NOT NULL
+);
 CREATE TABLE meal_type (
-	mt_name VARCHAR(50) PRIMARY KEY
+	mt_name VARCHAR(50) PRIMARY KEY,
+    img_id INT NOT NULL,
+	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE label (
 	label_name VARCHAR(30) PRIMARY KEY
@@ -15,12 +23,16 @@ CREATE TABLE tip (
 CREATE TABLE equipment(
 	eq_id INT AUTO_INCREMENT PRIMARY KEY,
 	eq_name VARCHAR(100) ,
-    instructions VARCHAR(1000) NOT NULL
+    instructions VARCHAR(1000) NOT NULL,
+    img_id INT NOT NULL,
+	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE ingredient_group(
 	ing_g_name VARCHAR(50) PRIMARY KEY,
     description VARCHAR(1000) NOT NULL,
-    characterization VARCHAR(100) NOT NULL
+    characterization VARCHAR(100) NOT NULL,
+    img_id INT NOT NULL,
+	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE ingredient(
 	ing_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -30,15 +42,21 @@ CREATE TABLE ingredient(
     protein_per_100g NUMERIC(5,2) CHECK(protein_per_100g >= 0 AND protein_per_100g <= 100),
     carbs_per_100g NUMERIC(5,2) CHECK(carbs_per_100g >= 0 AND carbs_per_100g <= 100),-- Triger if fat+protein+carbs > 100
     ing_group VARCHAR(50) NOT NULL,
+    img_id INT NOT NULL,
+	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (ing_group) REFERENCES ingredient_group(ing_g_name) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT sum_of_macros CHECK (fat_per_100g+protein_per_100g+carbs_per_100g <= 100)
 );
 CREATE TABLE thematic_section(
 	ts_name VARCHAR(100) PRIMARY KEY,
-    description VARCHAR(1000) NOT NULL
+    description VARCHAR(1000) NOT NULL,
+    img_id INT NOT NULL,
+	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE national_cuisine(
-	nt_name VARCHAR(30) PRIMARY KEY
+	nt_name VARCHAR(30) PRIMARY KEY,
+    img_id INT NOT NULL,
+	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE users(
 	username VARCHAR(20) PRIMARY KEY,
@@ -56,13 +74,17 @@ CREATE TABLE chef(
     age INT NOT NULL,
 	years_of_expertice INT NOT NULL CHECK (years_of_expertice >= 0), -- Trigger for years_of_expertice >= age 
     professional_title VARCHAR(20) NOT NULL,
+    img_id INT NOT NULL,
+	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (username) REFERENCES users(username) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE admin(
 	admin_id INT PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     surname VARCHAR(50) NOT NULL,
-	username VARCHAR(20) NOT NULL, 
+	username VARCHAR(20) NOT NULL,
+    img_id INT NOT NULL,
+	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE, 
     FOREIGN KEY (username) REFERENCES users(username) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE phonebook(
@@ -92,6 +114,8 @@ CREATE TABLE recipe(
 	fat_per_portion NUMERIC(8,2) NOT NULL CHECK (fat_per_portion >= 0) DEFAULT 0,
 	protein_per_portion NUMERIC(8,2) NOT NULL CHECK (protein_per_portion >= 0) DEFAULT 0,
 	carbs_per_portion NUMERIC(8,2) NOT NULL CHECK (carbs_per_portion >= 0) DEFAULT 0,
+    img_id INT NOT NULL,
+	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (national_cuisine) REFERENCES national_cuisine(nt_name) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (basic_ingredient) REFERENCES ingredient(ing_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT recipe_type_values CHECK (recipe_type in ('savory','confectionery'))
@@ -165,7 +189,9 @@ CREATE TABLE chef_recipe(
 CREATE TABLE episode(
 	episode_id INT NOT NULL,
     season_id INT NOT NULL,
-    PRIMARY KEY (episode_id,season_id)
+    img_id INT NOT NULL,
+    PRIMARY KEY (episode_id,season_id),
+    FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE episode_entries(
     entry_id INT AUTO_INCREMENT PRIMARY KEY,
