@@ -3588,5 +3588,17 @@ INSERT INTO chef_recipe (chef_id, rc_id) VALUES
 ('59', '30'),
 ('59', '45'),
 ('60', '31'),
-('60', '42')
-;
+('60', '42');
+
+CREATE VIEW chefs_in_episodes (episode_id, season_id, chef_id, job) AS 
+	SELECT episode_id, season_id, chef_id, "chef" as job
+	FROM episode_entries 
+	UNION ALL 
+	SELECT episode_id, season_id, first_judge_id as chef_id, "judge" as job
+	FROM judges
+	UNION ALL 
+	SELECT episode_id, season_id, second_judge_id as chef_id, "judge" as job
+	FROM judges
+	UNION ALL 
+	SELECT episode_id, season_id, third_judge_id as chef_id, "judge" as job
+	FROM judges;

@@ -1,8 +1,9 @@
-DROP DATABASE cooking_competition;
+DROP DATABASE IF EXISTS cooking_competition;
 
 CREATE DATABASE cooking_competition;
 USE cooking_competition;
 
+/*---------------------------------------------------------TABLES---------------------------------------------------------*/
 CREATE TABLE images (
 	id INT AUTO_INCREMENT PRIMARY KEY,
     img_path VARCHAR(100) NOT NULL,
@@ -22,7 +23,7 @@ CREATE TABLE tip (
 );
 CREATE TABLE equipment(
 	eq_id INT AUTO_INCREMENT PRIMARY KEY,
-	eq_name VARCHAR(100) ,
+	eq_name VARCHAR(100) NOT NULL,
     instructions VARCHAR(1000) NOT NULL,
     img_id INT NOT NULL,
 	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE
@@ -36,11 +37,11 @@ CREATE TABLE ingredient_group(
 );
 CREATE TABLE ingredient(
 	ing_id INT AUTO_INCREMENT PRIMARY KEY,
-	ing_name VARCHAR(50),
+	ing_name VARCHAR(50) NOT NULL,
     calories_per_100g NUMERIC(5,2) CHECK(calories_per_100g >= 0 AND calories_per_100g<=900),
     fat_per_100g NUMERIC(5,2) CHECK(fat_per_100g >= 0 AND fat_per_100g <= 100),
     protein_per_100g NUMERIC(5,2) CHECK(protein_per_100g >= 0 AND protein_per_100g <= 100),
-    carbs_per_100g NUMERIC(5,2) CHECK(carbs_per_100g >= 0 AND carbs_per_100g <= 100),-- Triger if fat+protein+carbs > 100
+    carbs_per_100g NUMERIC(5,2) CHECK(carbs_per_100g >= 0 AND carbs_per_100g <= 100),
     ing_group VARCHAR(50) NOT NULL,
     img_id INT NOT NULL,
 	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -71,8 +72,8 @@ CREATE TABLE chef(
     surname VARCHAR(50) NOT NULL,
     username VARCHAR(20) NOT NULL,
     date_of_birth DATE NOT NULL,
-    age INT NOT NULL,
-	years_of_expertice INT NOT NULL CHECK (years_of_expertice >= 0), -- Trigger for years_of_expertice >= age 
+    age INT NOT NULL CHECK (age > 0),
+	years_of_expertice INT NOT NULL CHECK (years_of_expertice >= 0),
     professional_title VARCHAR(20) NOT NULL,
     img_id INT NOT NULL,
 	FOREIGN KEY (img_id) REFERENCES images(id) ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -222,7 +223,11 @@ CREATE TABLE judges(
     FOREIGN KEY (third_judge_id) REFERENCES chef(chef_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
+/*----------------------------------------------------------INDEXES-----------------------------------------------------------*/
+CREATE INDEX idx_age ON chef(age);
+
 DELIMITER //
+/*---------------------------------------------------------PROCEDURES---------------------------------------------------------*/
 CREATE PROCEDURE update_recipe_nutritional_info_after_insert( IN rc_id INT, IN ing_id INT, IN amount NUMERIC(10,4), IN unit INT )
 BEGIN
     DECLARE calories NUMERIC(8,2);
@@ -289,6 +294,24 @@ BEGIN
         recipe_id = rc_id;
 END;
 //
+CREATE PROCEDURE GetChefsByCuisineAndSeason(IN cuisine VARCHAR(30), IN season INT)
+BEGIN
+	SELECT DISTINCT chef.chef_id,chef.name,chef.surname 
+	FROM episode_entries 
+	INNER JOIN chef 
+	ON chef.chef_id = episode_entries.chef_id 
+	WHERE episode_entries.nt_name = cuisine;
+
+	SELECT DISTINCT chef.chef_id,chef.name,chef.surname 
+	FROM episode_entries 
+	INNER JOIN chef 
+	ON chef.chef_id = episode_entries.chef_id 
+	WHERE episode_entries.nt_name = cuisine
+	AND episode_entries.season_id = season
+	ORDER BY chef_id;
+END;
+//
+/*---------------------------------------------------------TRIGERS---------------------------------------------------------*/
 CREATE TRIGGER update_nutritional_info_after_insert_t AFTER INSERT ON ingredients_used
 FOR EACH ROW
 BEGIN
@@ -318,8 +341,14 @@ BEGIN
     WHERE ing_id = NEW.basic_ingredient;
     
     SET NEW.characterization = rec_character;
-END;
-//
+END//
+CREATE TRIGGER invalid_years_of_expertice BEFORE INSERT ON chef
+FOR EACH ROW
+BEGIN
+    IF (NEW.age < NEW.years_of_expertice) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Years of expertice cannot be greater than the age of the chef';
+	END IF;
+END//
 CREATE TRIGGER consecutive_episodes_check BEFORE INSERT ON episode_entries
 FOR EACH ROW
 BEGIN
@@ -354,9 +383,44 @@ BEGIN
        ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A national cuisine cannot compete in more than 3 consecutive episodes in the same season.';
     END IF;
 END//
+CREATE TRIGGER consecutive_judges_check BEFORE INSERT ON judges
+FOR EACH ROW
+BEGIN
 
-CREATE TRIGGER check_tip_recipe_limit
-BEFORE INSERT ON recipe_tips
+    -- Check if the first judge has participated in the last three episodes
+    IF EXISTS (
+           SELECT 1
+           FROM judges
+           WHERE (first_judge_id = NEW.first_judge_id OR second_judge_id = NEW.first_judge_id OR third_judge_id = NEW.first_judge_id ) AND 
+           season_id = NEW.season_id AND episode_id IN (new.episode_id, new.episode_id - 1, new.episode_id - 2)
+           GROUP BY season_id
+           HAVING COUNT(*) >= 3) THEN 
+           SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Judge cannot compete in more than 3 consecutive episodes in the same season.';
+    END IF;
+    
+    -- Check if the second judge has participated in the last three episodes
+    IF EXISTS (
+           SELECT 1
+           FROM judges
+           WHERE (first_judge_id = NEW.second_judge_id OR second_judge_id = NEW.second_judge_id OR third_judge_id = NEW.second_judge_id ) AND 
+           season_id = NEW.season_id AND episode_id IN (new.episode_id, new.episode_id - 1, new.episode_id - 2)
+           GROUP BY season_id
+           HAVING COUNT(*) >= 3
+       ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Judge cannot compete in more than 3 consecutive episodes in the same season.';
+    END IF;
+    
+    -- Check if the third judge has participated in the last three episodes
+    IF EXISTS (
+           SELECT 1
+           FROM judges
+           WHERE (first_judge_id = NEW.third_judge_id OR second_judge_id = NEW.third_judge_id OR third_judge_id = NEW.third_judge_id ) AND 
+           season_id = NEW.season_id AND episode_id IN (new.episode_id, new.episode_id - 1, new.episode_id - 2)
+           GROUP BY season_id
+           HAVING COUNT(*) >= 3
+       ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Judge cannot compete in more than 3 consecutive episodes in the same season.';
+    END IF;
+END//
+CREATE TRIGGER check_tip_recipe_limit BEFORE INSERT ON recipe_tips
 FOR EACH ROW
 BEGIN
     DECLARE tip_count INT;
@@ -374,3 +438,4 @@ BEGIN
 END//
 
 DELIMITER ;
+
